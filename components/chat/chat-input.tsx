@@ -11,6 +11,7 @@ import {
 import Image from "next/image"
 import { FC, useContext, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import { Input } from "../ui/input"
 import { TextareaAutosize } from "../ui/textarea-autosize"
 import { ChatCommandInput } from "./chat-command-input"
@@ -144,11 +145,16 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
     const imagesAllowed = LLM_LIST.find(
       llm => llm.modelId === chatSettings?.model
     )?.imageInput
-    if (!imagesAllowed) return
 
     const items = event.clipboardData.items
     for (const item of items) {
       if (item.type.indexOf("image") === 0) {
+        if (!imagesAllowed) {
+          toast.error(
+            `Images are not supported for this model. Use models like GPT-4 Vision instead.`
+          )
+          return
+        }
         const file = item.getAsFile()
         if (!file) return
         handleSelectDeviceFile(file)
@@ -184,17 +190,20 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
 
         {selectedAssistant && (
           <div className="border-primary mx-auto flex w-fit items-center space-x-2 rounded-lg border p-1.5">
-            <Image
-              className="rounded"
-              src={
-                assistantImages.find(
-                  img => img.path === selectedAssistant.image_path
-                )?.base64
-              }
-              width={28}
-              height={28}
-              alt={selectedAssistant.name}
-            />
+            {selectedAssistant.image_path && (
+              <Image
+                className="rounded"
+                src={
+                  assistantImages.find(
+                    img => img.path === selectedAssistant.image_path
+                  )?.base64
+                }
+                width={28}
+                height={28}
+                alt={selectedAssistant.name}
+              />
+            )}
+
             <div className="text-sm font-bold">
               Talking to {selectedAssistant.name}
             </div>
@@ -231,7 +240,8 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
           textareaRef={chatInputRef}
           className="ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring text-md flex w-full resize-none rounded-md border-none bg-transparent px-14 py-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           placeholder={t(
-            `Ask anything. Type "@" for assistants, "/" for prompts, "#" for files, and "!" for tools.`
+            // `Ask anything. Type "@" for assistants, "/" for prompts, "#" for files, and "!" for tools.`
+            `Ask anything. Type @  /  #  !`
           )}
           onValueChange={handleInputChange}
           value={userInput}
